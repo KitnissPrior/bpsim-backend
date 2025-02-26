@@ -1,6 +1,10 @@
 from fastapi import FastAPI, Depends
 from pydantic import BaseModel, ConfigDict
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy.orm import Session
+from database import SessionLocal, engine, get_db
+from models import Base
+from schemas import UserCreate, User
 
 app = FastAPI()
 
@@ -11,6 +15,21 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Создание таблиц в базе данных
+Base.metadata.create_all(bind=engine)
+
+@app.get("/users/")
+def read_users(db: Session = Depends(get_db)):
+    return db.query(User).all()
+
+@app.post("/users/")
+def create_user(user: UserCreate, db: Session = Depends(get_db)):
+    db_user = User(**user.dict())
+    db.add(db_user)
+    db.commit()
+    db.refresh(db_user)
+    return db_user
 
 class NodeCreation(BaseModel):
     name: str
