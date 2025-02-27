@@ -5,11 +5,11 @@ from uuid import uuid4
 
 
 class User(Base):
-    __tablename__ = "users"
+    __tablename__ = 'users'
 
-    id = Column(Integer, primary_key=True, unique=True)
-    username = Column(String, unique=True)
-    email = Column(String, unique=True)
+    id = Column(Integer, primary_key=True)
+    username = Column(String)
+    email = Column(String)
 
 class Node(Base):
     __tablename__ = "nodes"

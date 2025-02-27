@@ -4,7 +4,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from database import SessionLocal, engine, get_db
 from models import Base
-from schemas import UserCreate, User
+from schemas import User
+from sqlalchemy import select
+from typing import List
+
+import os
+from dotenv import load_dotenv
+
+load_dotenv('.env')
 
 app = FastAPI()
 
@@ -14,22 +21,25 @@ app.add_middleware(
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
+    db_url=os.environ['DATABASE_URL']
 )
 
 # Создание таблиц в базе данных
 Base.metadata.create_all(bind=engine)
 
-@app.get("/users/")
-def read_users(db: Session = Depends(get_db)):
-    return db.query(User).all()
+@app.get("/users/", response_model=List[User])
+async def read_users(db: SessionLocal = Depends(get_db)):
+    result = await db.execute(select(User))
+    users = result.scalars().all()
+    return users
 
-@app.post("/users/")
-def create_user(user: UserCreate, db: Session = Depends(get_db)):
+@app.post("/user/")
+def create_user(user: User, db: Session = Depends(get_db)):
     db_user = User(**user.dict())
     db.add(db_user)
     db.commit()
     db.refresh(db_user)
-    return db_user
+    return user
 
 class NodeCreation(BaseModel):
     name: str
@@ -44,7 +54,7 @@ async def add_node(node: NodeCreation):
     """
     Добавить узел в модель
     """
-    return {"data": node}
+    return node
 
 @app.get("/")
 async def home():
