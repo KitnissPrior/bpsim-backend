@@ -7,11 +7,17 @@ from alembic import context
 
 # My code
 import os,sys
+# from dotenv import load_dotenv
+#
+# BASE_DIR= os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+# load_dotenv(os.path.join(BASE_DIR, '.env'))
+# sys.path.append(BASE_DIR)
+
+from pathlib import Path
 from dotenv import load_dotenv
 
-BASE_DIR= os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-load_dotenv(os.path.join(BASE_DIR, '.env'))
-sys.path.append(BASE_DIR)
+env_path = Path('.') / '.env'
+load_dotenv(dotenv_path=env_path)
 
 
 # This is the Alembic Config object, which provides
