@@ -5,7 +5,7 @@ from database import engine
 from models import User as ModelUser
 from models import Node as ModelNode
 from schemas import User as SchemaUser
-from schemas import Node as SchemaNode, NodeUpdate
+from schemas import Node as SchemaNode
 from database import Base
 from fastapi_sqlalchemy import DBSessionMiddleware, db
 
@@ -16,7 +16,6 @@ load_dotenv('.env')
 
 app = FastAPI(
     title="API для работы с BPsim.MAS",
-    # description="Документация API",
     version="1.0.0",
     openapi_tags=[
         {
@@ -82,7 +81,7 @@ async def create_node(node: SchemaNode):
     db.session.commit()
     return db_node
 @app.put("/node/{id}", tags=["Nodes"])
-async def update_node(id: int, node_update: NodeUpdate):
+async def update_node(id: int, node_update: SchemaNode):
     """Обновляет данные узла по id
 
     P.S.Чтобы поле осталось без изменений, надо передать в него null
@@ -105,19 +104,14 @@ async def update_node(id: int, node_update: NodeUpdate):
 @app.delete("/node/{id}", tags=["Nodes"])
 async def delete_node(id: int):
     """Удаляет узел по id"""
-
-    # Получаем объект из базы данных
     db_node = db.session.query(ModelNode).get(id)
 
-    # Проверяем существование узла
     if not db_node:
         raise HTTPException(status_code=404, detail="Узел не найден")
 
-    # Удаляем узел и сохраняем изменения
     db.session.delete(db_node)
     db.session.commit()
 
-    # Возвращаем успешный ответ
     return {"status": "success", "message": "Узел успешно удалён"}
 
 @app.get("/", tags=["Connections"])
