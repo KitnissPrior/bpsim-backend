@@ -21,43 +21,47 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    DBSessionMiddleware,
     allow_origins=["*"],  # Либо конкретные URL-адреса
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
-    db_url=os.environ['DATABASE_URL']
 )
+app.add_middleware(DBSessionMiddleware, db_url=os.environ['DATABASE_URL'])
 
 # Создание таблиц в базе данных
 Base.metadata.create_all(bind=engine)
 
 @app.get("/users/")
 async def get_users():
+    """Возвращает список пользователей"""
     users = db.session.query(ModelUser).all()
     return users
 
 @app.post("/user/", response_model=SchemaUser)
 def create_user(user: SchemaUser):
-    db_user = ModelUser(name=user.name, email=user.email)
+    """
+    Добавляет пользователя
+    """
+    db_user = ModelUser(username=user.username, email=user.email)
     db.session.add(db_user)
     db.session.commit()
     return db_user
 
-# class NodeCreation(BaseModel):
-#     name: str
-#     description: str | None = None
-#
-# class Node(NodeCreation):
-#     id: int
-#     model_config = ConfigDict(from_attributes=True)
+@app.get("/nodes/")
+async def get_nodes():
+    """Возвращает список узлов"""
+    nodes = db.session.query(ModelNode).all()
+    return nodes
 
-@app.post("/node/")
-async def add_node(node: NodeCreation):
+@app.post("/node/", response_model=SchemaNode)
+async def add_node(node: SchemaNode):
     """
-    Добавить узел в модель
+    Добавляет узел в модель
     """
-    return node
+    db_node = ModelNode(name=node.name, description=node.description, posX = node.posX, posY = node.posY)
+    db.session.add(db_node)
+    db.session.commit()
+    return db_node
 
 @app.get("/")
 async def home():
