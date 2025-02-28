@@ -5,7 +5,7 @@ from database import engine
 from models import User as ModelUser
 from models import Node as ModelNode
 from schemas import User as SchemaUser
-from schemas import Node as SchemaNode, NodeUpdate
+from schemas import Node as SchemaNode
 from database import Base
 from fastapi_sqlalchemy import DBSessionMiddleware, db
 
@@ -16,7 +16,6 @@ load_dotenv('.env')
 
 app = FastAPI(
     title="API для работы с BPsim.MAS",
-    # description="Документация API",
     version="1.0.0",
     openapi_tags=[
         {
@@ -74,15 +73,24 @@ async def get_node(id: int):
     node = db.session.get(ModelNode, id)
     return node
 
+initialX = 50
+initialY = 200
+deltaX = 40
+deltaY = 20
 @app.post("/node/", response_model=SchemaNode, tags=["Nodes"])
 async def create_node(node: SchemaNode):
     """Добавляет узел в модель"""
-    db_node = ModelNode(name=node.name, description=node.description, posX = node.posX, posY = node.posY)
+    global initialX, deltaX, initialY, deltaY
+    initialY += deltaY
+    initialX += deltaX
+    db_node = ModelNode(name=f"Новый узел", description=node.description,
+                        posX = node.posX + initialX, posY = node.posY + initialY)
     db.session.add(db_node)
     db.session.commit()
-    return db_node
+    return db.session.query(ModelNode).get(db_node.id)
+
 @app.put("/node/{id}", tags=["Nodes"])
-async def update_node(id: int, node_update: NodeUpdate):
+async def update_node(id: int, node_update: SchemaNode):
     """Обновляет данные узла по id
 
     P.S.Чтобы поле осталось без изменений, надо передать в него null
@@ -105,19 +113,14 @@ async def update_node(id: int, node_update: NodeUpdate):
 @app.delete("/node/{id}", tags=["Nodes"])
 async def delete_node(id: int):
     """Удаляет узел по id"""
-
-    # Получаем объект из базы данных
     db_node = db.session.query(ModelNode).get(id)
 
-    # Проверяем существование узла
     if not db_node:
         raise HTTPException(status_code=404, detail="Узел не найден")
 
-    # Удаляем узел и сохраняем изменения
     db.session.delete(db_node)
     db.session.commit()
 
-    # Возвращаем успешный ответ
     return {"status": "success", "message": "Узел успешно удалён"}
 
 @app.get("/", tags=["Connections"])

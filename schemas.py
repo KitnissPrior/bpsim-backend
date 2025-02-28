@@ -23,16 +23,6 @@ class User(BaseModel):
         orm_mode = True
 
 class Node(BaseModel):
-    name: str
-    description: str
-    posX: float
-    posY: float
-
-    class Config:
-        orm_mode = True
-
-class NodeUpdate(BaseModel):
-    """Модель для обновления узла"""
     name: str | None = None
     description: str | None = None
     posX: float | None = None
