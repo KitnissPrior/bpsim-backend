@@ -30,3 +30,13 @@ class Node(BaseModel):
 
     class Config:
         orm_mode = True
+
+class NodeUpdate(BaseModel):
+    """Модель для обновления узла"""
+    name: str | None = None
+    description: str | None = None
+    posX: float | None = None
+    posY: float | None = None
+
+    class Config:
+        orm_mode = True
