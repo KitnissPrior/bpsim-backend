@@ -53,6 +53,12 @@ async def get_nodes():
     nodes = db.session.query(ModelNode).all()
     return nodes
 
+@app.get("/node/{id}")
+async def get_node(id: int):
+    """Возвращает узел по id"""
+    node = db.session.get(ModelNode, id)
+    return node
+
 @app.post("/node/", response_model=SchemaNode)
 async def add_node(node: SchemaNode):
     """
