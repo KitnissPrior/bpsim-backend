@@ -73,13 +73,22 @@ async def get_node(id: int):
     node = db.session.get(ModelNode, id)
     return node
 
+initialX = 50
+initialY = 200
+deltaX = 40
+deltaY = 20
 @app.post("/node/", response_model=SchemaNode, tags=["Nodes"])
 async def create_node(node: SchemaNode):
     """Добавляет узел в модель"""
-    db_node = ModelNode(name=node.name, description=node.description, posX = node.posX, posY = node.posY)
+    global initialX, deltaX, initialY, deltaY
+    initialY += deltaY
+    initialX += deltaX
+    db_node = ModelNode(name=f"Новый узел", description=node.description,
+                        posX = node.posX + initialX, posY = node.posY + initialY)
     db.session.add(db_node)
     db.session.commit()
-    return db_node
+    return db.session.query(ModelNode).get(db_node.id)
+
 @app.put("/node/{id}", tags=["Nodes"])
 async def update_node(id: int, node_update: SchemaNode):
     """Обновляет данные узла по id
