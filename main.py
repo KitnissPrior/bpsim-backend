@@ -1,12 +1,17 @@
 import uvicorn
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from database import engine
-from models import User as ModelUser
-from models import Node as ModelNode
-from schemas import User as SchemaUser
-from schemas import Node as SchemaNode
-from database import Base
+from db.database import engine
+from db.models import User as ModelUser
+from db.models import Node as ModelNode
+from db.models import SubjectArea as ModelSubjectArea
+from db.models import Model as ModelBpsimModel
+
+from db.schemas import User as SchemaUser
+from db.schemas import Node as SchemaNode
+from db.schemas import SubjectArea as SchemaSubjectArea
+from db.schemas import Model as SchemaBpsimModel
+from db.database import Base
 from fastapi_sqlalchemy import DBSessionMiddleware, db
 
 import os
@@ -18,6 +23,15 @@ app = FastAPI(
     title="API для работы с BPsim.MAS",
     version="1.0.0",
     openapi_tags=[
+
+        {
+            "name": "Subject Areas",
+            "description": "Операции для работы с ПО"
+        },
+        {
+            "name": "Models",
+            "description": "Операции для работы с моделями"
+        },
         {
             "name": "Nodes",
             "description": "Операции для работы с узлами"
@@ -61,6 +75,48 @@ def create_user(user: SchemaUser):
     db.session.commit()
     return db_user
 
+@app.get("/subjectAreas/", tags=["Subject Areas"])
+async def get_subject_areas():
+    """Возвращает список ПО"""
+    subject_areas = db.session.query(ModelSubjectArea).all()
+    return subject_areas
+
+@app.post("/subjectArea/", tags=["Subject Areas"])
+async def create_subject_area(area: SchemaSubjectArea):
+    """Добавляет ПО"""
+    db_sub_area = ModelSubjectArea(name=area.name, description=area.description)
+    db.session.add(db_sub_area)
+    db.session.commit()
+    db.session.refresh(db_sub_area)
+    return db_sub_area
+
+@app.get("/models/", tags=["Models"])
+async def get_models():
+    """Возвращает список моделей"""
+    models = db.session.query(ModelBpsimModel).all()
+    return models
+
+@app.post("/model/", tags=["Models"])
+async def create_model(model: SchemaBpsimModel):
+    """Добавляет модель"""
+    model = ModelBpsimModel(name=model.name, description=model.description, sub_area_id = model.sub_area_id)
+    db.session.add(model)
+    db.session.commit()
+    db.session.refresh(model)
+    return model
+
+@app.delete("/model/{id}", tags=["Models"])
+async def delete_model(id: int):
+    """Удаляет модель по id"""
+    db_model = db.session.query(ModelBpsimModel).get(id)
+    if not db_model:
+        raise HTTPException(status_code=404, detail="Модель не найдена")
+
+    db.session.delete(db_model)
+    db.session.commit()
+
+    return {"status": "success", "message": "Модель успешно удалена"}
+
 @app.get("/nodes/", tags=["Nodes"])
 async def get_nodes():
     """Возвращает список узлов"""
@@ -77,8 +133,9 @@ initialX = 50
 initialY = 200
 deltaX = 40
 deltaY = 20
-@app.post("/node/", response_model=SchemaNode, tags=["Nodes"])
+@app.post("/node/", tags=["Nodes"])
 async def create_node(node: SchemaNode):
+    """Добавляет узел"""
     global initialX, deltaX, initialY, deltaY
     initialY += deltaY
     initialX += deltaX
@@ -86,7 +143,7 @@ async def create_node(node: SchemaNode):
                         posX=node.posX + initialX, posY=node.posY + initialY)
     db.session.add(db_node)
     db.session.commit()
-    db.session.refresh(db_node)  # Обновляем объект в памяти
+    db.session.refresh(db_node)
     return db_node
 
 @app.put("/node/{id}", tags=["Nodes"])
