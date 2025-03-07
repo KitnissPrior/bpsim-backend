@@ -38,7 +38,7 @@ class Node(Base):
     posX = Column(Float)
     posY = Column(Float)
     # FK
-    model_id = Column(Integer, ForeignKey('models.id'))
+    model_id = Column(Integer, ForeignKey('models.id'), nullable=True)
     # relations
     # для связей, где текущий узел является источником
     outgoing_relations = relationship(

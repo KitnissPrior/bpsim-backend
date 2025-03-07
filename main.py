@@ -1,6 +1,9 @@
 import uvicorn
 from fastapi import FastAPI, HTTPException
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.responses import JSONResponse
+
 from db.database import engine
 from db.models import User as ModelUser
 from db.models import Node as ModelNode
@@ -111,10 +114,11 @@ async def delete_subject_area(id: int):
 
     return {"status": "success", "message": f"Предметная область '{name}' успешно удалена"}
 
-@app.get("/models/", tags=["Models"])
-async def get_models():
-    """Возвращает список моделей"""
-    models = db.session.query(ModelBpsimModel).all()
+@app.get("/models/{sub_area_id}", tags=["Models"])
+async def get_models(sub_area_id: int):
+    """Возвращает список моделей
+    """
+    models = db.session.query(ModelBpsimModel).filter((ModelBpsimModel.sub_area_id == sub_area_id)).all()
     return models
 
 @app.get("/model/{id}", tags=["Models"])
@@ -146,10 +150,10 @@ async def delete_model(id: int):
 
     return {"status": "success", "message": f"Модель '{name}' успешно удалена"}
 
-@app.get("/nodes/", tags=["Nodes"])
-async def get_nodes():
+@app.get("/nodes/{model_id}", tags=["Nodes"])
+async def get_nodes(model_id: int):
     """Возвращает список узлов"""
-    nodes = db.session.query(ModelNode).all()
+    nodes = db.session.query(ModelNode).filter(ModelNode.model_id == model_id).all()
     return nodes
 
 @app.get("/node/{id}", tags=["Nodes"])
@@ -219,6 +223,26 @@ async def delete_node(id: int):
 async def ping():
     """Home endpoint"""
     return {"data": "Это бэкенд BPsim Web!"}
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_error_handler(request, exc: RequestValidationError):
+    error_details = []
+    for error in exc.errors():
+        error_details.append({
+            "поле": ".".join(map(str, error["loc"][1:])),
+            "ошибка": error["msg"],
+            "тип": error["type"]
+        })
+
+    return JSONResponse(
+        status_code=422,
+        content={
+            "error": "Ошибка валидации данных",
+            "details": error_details,
+            "полученные_данные": exc.body
+        }
+    )
 
 # To run locally
 if __name__ == '__main__':
