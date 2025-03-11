@@ -21,6 +21,8 @@ from db.schemas import NodeDetail as SchemaNodeDetail
 from db.database import Base
 from fastapi_sqlalchemy import DBSessionMiddleware, db
 
+from sqlalchemy import or_
+
 import os
 from dotenv import load_dotenv
 
@@ -175,7 +177,7 @@ async def get_node(id: int):
     return node
 
 initialX = 50
-initialY = 200
+initialY = 100
 deltaX = 0
 deltaY = 0
 @app.post("/node/", tags=["Nodes"])
@@ -225,14 +227,15 @@ async def delete_node(id: int):
     db_node = db.session.query(ModelNode).get(id)
     check_existance(db_node, "Узел не найден")
 
+    # db_node_details = db.session.query(ModelNodeDetail).filter_by(node_id=id).first()
+    # print(db_node_details)
+    # db.session.delete(db_node_details)
+    #
+    # db_relation = db.session.query(ModelRelation).filter(or_(ModelRelation.target_id==id, ModelRelation.source_id==id)).first()
+    # db.session.delete(db_relation)
+
     name = db_node.name
     db.session.delete(db_node)
-
-    db_node_details = db.session.query(ModelNodeDetail).filter(node_id=id).first()
-    db.session.delete(db_node_details)
-
-    db_relation = db.session.query(ModelRelation).filter(ModelRelation.target_id==id or ModelRelation.source_id==id).first()
-    db.session.delete(db_relation)
     db.session.commit()
 
     return {"status": "success", "message": f"Узел '{name}' успешно удалён"}
@@ -288,7 +291,7 @@ async def delete_relation(id: int):
 @app.get("/nodeDetails/{node_id}", tags=["Node Details"])
 async def get_node_details(node_id: int):
     """Возвращает свойства узла"""
-    db_node_details = db.session.query(ModelNodeDetail).filter(ModelNodeDetail.node_id==node_id).first()
+    db_node_details = db.session.query(ModelNodeDetail).filter_by(node_id=node_id).first()
     check_existance(db_node_details , "Свойства узла не найдены")
     return db_node_details
 
