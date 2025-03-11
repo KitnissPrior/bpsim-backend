@@ -9,11 +9,15 @@ from db.models import User as ModelUser
 from db.models import Node as ModelNode
 from db.models import SubjectArea as ModelSubjectArea
 from db.models import Model as ModelBpsimModel
+from db.models import Relation as ModelRelation
+from db.models import NodeDetail as ModelNodeDetail
 
 from db.schemas import User as SchemaUser
 from db.schemas import Node as SchemaNode
 from db.schemas import SubjectArea as SchemaSubjectArea
 from db.schemas import Model as SchemaBpsimModel
+from db.schemas import Relation as SchemaRelation
+from db.schemas import NodeDetail as SchemaNodeDetail
 from db.database import Base
 from fastapi_sqlalchemy import DBSessionMiddleware, db
 
@@ -38,6 +42,14 @@ app = FastAPI(
         {
             "name": "Nodes",
             "description": "Операции для работы с узлами"
+        },
+        {
+            "name": "Relations",
+            "description": "Операции для работы со связями"
+        },
+        {
+            "name": "Node Details",
+            "description": "Операции для работы со свойствами узла"
         },
         {
             "name": "Users",
@@ -166,8 +178,8 @@ async def get_node(id: int):
 
 initialX = 50
 initialY = 200
-deltaX = 40
-deltaY = 20
+deltaX = 0
+deltaY = 0
 @app.post("/node/", tags=["Nodes"])
 async def create_node(node: SchemaNode):
     """Добавляет узел"""
@@ -205,6 +217,55 @@ async def update_node(id: int, node_update: SchemaNode):
     new_node = db.session.query(ModelNode).get(id)
 
     return {"status": "success", "data": new_node}
+
+
+@app.get("/relations/{model_id}", tags=["Relations"])
+async def get_relations(model_id: int):
+    """Возвращает связи по id модели"""
+    relations = db.session.query(ModelRelation).filter_by(model_id=model_id).all()
+    return relations
+
+@app.get("/relation/{id}", tags=["Relations"])
+async def get_relation(id: int):
+    """Возвращает узел по id"""
+    db_relation = db.session.query(ModelRelation).get(id)
+    if not db_relation:
+        raise HTTPException(status_code=404, detail="Связь не найдена")
+    return db_relation
+@app.post("/relation/", tags=["Relations"])
+async def create_relation(relation : SchemaRelation):
+    """Добавляет связь"""
+    db_relation = ModelRelation(source_id=relation.source_id, target_id=relation.target_id, model_id=relation.model_id)
+    db.session.add(db_relation)
+    db.session.commit()
+    db.session.refresh(db_relation)
+    return db_relation
+
+@app.put("/relation/{id}", tags=["Relations"])
+async def update_relation(id: int, relation_update: SchemaRelation):
+    """Обновляет данные связи по id"""
+    db_relation = db.session.query(ModelRelation).get(id)
+    if not db_relation:
+        raise HTTPException(status_code=404, detail="Связь не найдена")
+    for key, value in relation_update.dict(exclude_none=True).items():
+        setattr(db_relation, key, value)
+
+    db.session.add(db_relation)
+    db.session.commit()
+    new_relation = db.session.query(ModelRelation).get(id)
+
+    return {"status": "success", "data": new_relation}
+
+@app.delete("/relation/{id}", tags=["Relations"])
+async def delete_relation(id: int):
+    """Удаляет связь"""
+    db_relation = db.session.query(ModelRelation).get(id)
+    if not db_relation:
+        raise HTTPException(status_code=404, detail="Связь не найдена")
+    db.session.delete(db_relation)
+    db.session.commit()
+
+    return {"status": "success", "message": "Связь успешно удалена"}
 
 @app.delete("/node/{id}", tags=["Nodes"])
 async def delete_node(id: int):
