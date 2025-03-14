@@ -102,7 +102,7 @@ async def get_subject_areas():
     subject_areas = db.session.query(ModelSubjectArea).all()
     return subject_areas
 
-@app.get("/subjectArea/{id}", tags=["Subject Areas"])
+@app.get("/subjectArea/{id}/", tags=["Subject Areas"])
 async def get_subject_area(id: int):
     """Возвращает ПО по id"""
     db_sub_area = db.session.query(ModelSubjectArea).get(id)
@@ -118,7 +118,7 @@ async def create_subject_area(area: SchemaSubjectArea):
     db.session.refresh(db_sub_area)
     return db_sub_area
 
-@app.delete("/subjectArea/{id}", tags=["Subject Areas"])
+@app.delete("/subjectArea/{id}/", tags=["Subject Areas"])
 async def delete_subject_area(id: int):
     """Удаляет ПО по id"""
     db_sub_area = db.session.query(ModelSubjectArea).get(id)
@@ -129,14 +129,14 @@ async def delete_subject_area(id: int):
 
     return {"status": "success", "message": f"Предметная область '{name}' успешно удалена"}
 
-@app.get("/models/{sub_area_id}", tags=["Models"])
+@app.get("/models/{sub_area_id}/", tags=["Models"])
 async def get_models(sub_area_id: int):
     """Возвращает список моделей
     """
     models = db.session.query(ModelBpsimModel).filter((ModelBpsimModel.sub_area_id == sub_area_id)).all()
     return models
 
-@app.get("/model/{id}", tags=["Models"])
+@app.get("/model/{id}/", tags=["Models"])
 async def get_model(id: int):
     """Возвращает модель по id"""
     db_model = db.session.query(ModelBpsimModel).get(id)
@@ -152,7 +152,7 @@ async def create_model(model: SchemaBpsimModel):
     db.session.refresh(model)
     return model
 
-@app.delete("/model/{id}", tags=["Models"])
+@app.delete("/model/{id}/", tags=["Models"])
 async def delete_model(id: int):
     """Удаляет модель по id"""
     db_model = db.session.query(ModelBpsimModel).get(id)
@@ -163,13 +163,13 @@ async def delete_model(id: int):
 
     return {"status": "success", "message": f"Модель '{name}' успешно удалена"}
 
-@app.get("/nodes/{model_id}", tags=["Nodes"])
+@app.get("/nodes/{model_id}/", tags=["Nodes"])
 async def get_nodes(model_id: int):
     """Возвращает список узлов"""
     nodes = db.session.query(ModelNode).filter(ModelNode.model_id == model_id).all()
     return nodes
 
-@app.get("/node/{id}", tags=["Nodes"])
+@app.get("/node/{id}/", tags=["Nodes"])
 async def get_node(id: int):
     """Возвращает узел по id"""
     node = db.session.get(ModelNode, id)
@@ -202,7 +202,7 @@ async def create_node(node: SchemaNode):
 
     return db_node
 
-@app.put("/node/{id}", tags=["Nodes"])
+@app.put("/node/{id}/", tags=["Nodes"])
 async def update_node(id: int, node_update: SchemaNode):
     """Обновляет данные узла по id
 
@@ -221,7 +221,7 @@ async def update_node(id: int, node_update: SchemaNode):
 
     return {"status": "success", "data": new_node}
 
-@app.delete("/node/{id}", tags=["Nodes"])
+@app.delete("/node/{id}/", tags=["Nodes"])
 async def delete_node(id: int):
     """Удаляет узел по id"""
     db_node = db.session.query(ModelNode).get(id)
@@ -241,13 +241,13 @@ async def delete_node(id: int):
     return {"status": "success", "message": f"Узел '{name}' успешно удалён"}
 
 
-@app.get("/relations/{model_id}", tags=["Relations"])
+@app.get("/relations/{model_id}/", tags=["Relations"])
 async def get_relations(model_id: int):
     """Возвращает связи по id модели"""
     relations = db.session.query(ModelRelation).filter_by(model_id=model_id).all()
     return relations
 
-@app.get("/relation/{id}", tags=["Relations"])
+@app.get("/relation/{id}/", tags=["Relations"])
 async def get_relation(id: int):
     """Возвращает узел по id"""
     db_relation = db.session.query(ModelRelation).get(id)
@@ -263,7 +263,7 @@ async def create_relation(relation : SchemaRelation):
     db.session.refresh(db_relation)
     return db_relation
 
-@app.put("/relation/{id}", tags=["Relations"])
+@app.put("/relation/{id}/", tags=["Relations"])
 async def update_relation(id: int, relation_update: SchemaRelation):
     """Обновляет данные связи по id"""
     db_relation = db.session.query(ModelRelation).get(id)
@@ -278,7 +278,7 @@ async def update_relation(id: int, relation_update: SchemaRelation):
 
     return {"status": "success", "data": new_relation}
 
-@app.delete("/relation/{id}", tags=["Relations"])
+@app.delete("/relation/{id}/", tags=["Relations"])
 async def delete_relation(id: int):
     """Удаляет связь"""
     db_relation = db.session.query(ModelRelation).get(id)
@@ -288,10 +288,10 @@ async def delete_relation(id: int):
 
     return {"status": "success", "message": "Связь успешно удалена"}
 
-@app.get("/nodeDetails/{node_id}", tags=["Node Details"])
+@app.get("/nodeDetails/{node_id}/", tags=["Node Details"])
 async def get_node_details(node_id: int):
     """Возвращает свойства узла"""
-    db_node_details = db.session.query(ModelNodeDetail).filter_by(node_id=node_id).first()
+    db_node_details = db.session.query(ModelNodeDetail).filter(ModelNodeDetail.node_id==node_id).first()
     check_existance(db_node_details , "Свойства узла не найдены")
     return db_node_details
 
@@ -304,7 +304,7 @@ async def create_node_details(details: SchemaNodeDetail):
     db.session.refresh(new_details)
     return new_details
 
-@app.put("/nodeDetails/{id}", tags=["Node Details"])
+@app.put("/nodeDetails/{id}/", tags=["Node Details"])
 async def update_node_details(id: int, details_update: SchemaNodeDetail):
     db_node_details = db.session.query(ModelNodeDetail).get(id)
     check_existance(db_node_details, "Свойства узла не найдены")
