@@ -26,9 +26,9 @@ def start(env, events):
 
 
 def get_report(events: [], time_limit: int):
+    """Возвращает отчет по симуляции"""
     global report
     report.append(f'Время симуляции - {time_limit}')
-    """Возвращает отчет по симуляции"""
     env = simpy.Environment()
     env.process(start(env, events))
     env.run(until=time_limit)
