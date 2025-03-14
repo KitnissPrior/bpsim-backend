@@ -22,6 +22,7 @@ from db.database import Base
 from fastapi_sqlalchemy import DBSessionMiddleware, db
 
 from sqlalchemy import or_
+from simulation import get_events_list, get_report
 
 import os
 from dotenv import load_dotenv
@@ -32,6 +33,10 @@ app = FastAPI(
     title="API для работы с BPsim.MAS",
     version="1.0.0",
     openapi_tags=[
+        {
+            "name": "Simulation",
+            "description": "Запуск симуляции"
+        },
 
         {
             "name": "Subject Areas",
@@ -317,6 +322,25 @@ async def update_node_details(id: int, details_update: SchemaNodeDetail):
     new_details = db.session.query(ModelNodeDetail).get(id)
 
     return {"status": "success", "data": new_details}
+
+class NodeData:
+    def __init__(self, id: int, name: str, cost: int, duration: int):
+        self.id = id
+        self.name = name
+        self.cost = cost
+        self.duration = duration
+
+@app.get("/start/{model_id}", tags=["Simulation"])
+async def start_simulation(model_id: int):
+    nodes = get_nodes(model_id)
+    relations = get_relations(model_id)
+    node_data = list[NodeData]
+    for node in nodes:
+        details = get_node_details(node.id)
+        node_data.append(NodeData(id=node.id, name=node.name, duration=details.duration, cost = details.cost))
+
+    events = get_events_list(node_data, relations)
+    return get_report(events)
 
 @app.get("/", tags=["Connections"])
 async def ping():

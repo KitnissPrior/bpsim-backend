@@ -1,5 +1,7 @@
 import simpy
+from db.models import Relation, Node
 def get_events_list(nodes: list[Node], relations: list[Relation]) -> list:
+    """Возвращает список событий"""
     events_list = []
     relations.sort(key=lambda rel: rel.source_id)
     for relation in relations:
@@ -14,6 +16,7 @@ cost = 0
 report = list[str]
 report.append('Время симуляции - 100')
 def start(env, events):
+    """Запускает симуляцию"""
     global cost, report
     while True:
         for event in events:
@@ -22,8 +25,10 @@ def start(env, events):
             yield env.timeout(event.duration)
 
 
-env = simpy.Environment()
-
-#events = get_events_list(nodes, relations)
-#env.process(start(env, events))
-#env.run(until=100)
+def get_report(events, time_limit: int) -> list[str]:
+    """Возвращает отчет по симуляции"""
+    env = simpy.Environment()
+    env.process(start(env, events))
+    env.run(until=time_limit)
+    report.append(f'Общие затраты: {cost}')
+    return report
