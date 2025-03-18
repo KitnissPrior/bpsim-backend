@@ -330,7 +330,7 @@ class NodeData:
         self.cost = cost
         self.duration = duration
 
-@app.get("/start/{model_id}", tags=["Simulation"])
+@app.get("/start/{model_id}/", tags=["Simulation"])
 async def start_simulation(model_id: int):
     nodes = db.session.query(ModelNode).filter(ModelNode.model_id == model_id).all()
     relations = db.session.query(ModelRelation).filter(ModelRelation.model_id == model_id).all()
