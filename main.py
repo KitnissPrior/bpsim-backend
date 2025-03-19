@@ -333,11 +333,13 @@ class NodeData:
 @app.get("/start/{model_id}/", tags=["Simulation"])
 async def start_simulation(model_id: int):
     nodes = db.session.query(ModelNode).filter(ModelNode.model_id == model_id).all()
-    relations = db.session.query(ModelRelation).filter(ModelRelation.model_id == model_id).all()
+    relations = (db.session.query(ModelRelation).filter(ModelRelation.model_id == model_id).all())
     node_data = []
     for node in nodes:
-        details = db.session.query(ModelNodeDetail).filter(ModelNodeDetail.node_id == node.id).first()
-        node_data.append(NodeData(id=node.id, name=node.name, duration=int(details.duration), cost = details.cost))
+        details = (db.session.query(ModelNodeDetail).filter(ModelNodeDetail.node_id == node.id).first())
+        node_data.append(NodeData(
+            id=node.id, name=node.name,
+            duration=int(details.duration), cost = details.cost))
 
     events = get_events_list(node_data, relations)
     return get_report(events, 200)
