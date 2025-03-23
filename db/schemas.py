@@ -48,3 +48,38 @@ class NodeDetail(BaseModel):
 
     class Config:
         orm_mode = True
+
+class NodeRes(BaseModel):
+    node_id: int
+    value: float
+    res_in_out: float
+    res_id: int
+    model_id: int
+
+    class Config:
+        orm_mode = True
+
+class ResourceType(BaseModel):
+    name: str
+    prefix: str
+
+    class Config:
+        orm_mode = True
+
+class Resource(BaseModel):
+    name: str
+    type_id: int
+    sub_area_id: int
+    current_value: Optional[float] = None
+    min_value: Optional[float] = None
+    max_value: Optional[float] = None
+    measure_id: Optional[int] = None
+
+    class Config:
+        orm_mode = True
+
+class Measure(BaseModel):
+    name: str
+
+    class Config:
+        orm_mode = True
