@@ -3,6 +3,7 @@ from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.responses import JSONResponse
+from sqlalchemy import and_
 
 from db.database import engine
 from db.models import User as ModelUser
@@ -11,6 +12,11 @@ from db.models import SubjectArea as ModelSubjectArea
 from db.models import Model as ModelBpsimModel
 from db.models import Relation as ModelRelation
 from db.models import NodeDetail as ModelNodeDetail
+from db.models import Resource as ModelResource
+from db.models import ResourceType as ModelResourceType
+from db.models import NodeDetail as ModelNodeRes
+from db.models import Measure as ModelMeasure
+
 
 from db.schemas import User as SchemaUser
 from db.schemas import Node as SchemaNode
@@ -18,10 +24,11 @@ from db.schemas import SubjectArea as SchemaSubjectArea
 from db.schemas import Model as SchemaBpsimModel
 from db.schemas import Relation as SchemaRelation
 from db.schemas import NodeDetail as SchemaNodeDetail
+from db.schemas import Resource as SchemaResource
+from db.schemas import NodeRes as SchemaNodeRes
 from db.database import Base
+
 from fastapi_sqlalchemy import DBSessionMiddleware, db
-
-
 
 from shared.validation import check_existance
 from shared.Node.deletion import delete_node_details, delete_node_relation
@@ -29,6 +36,7 @@ from shared.Model.deletion import delete_model_nodes
 from shared.SubjectArea.deletion import delete_subject_area_models
 
 from simulation import get_events_list, get_report
+from shared.Node.types import NodeData
 
 import os
 from dotenv import load_dotenv
@@ -65,13 +73,21 @@ app = FastAPI(
             "description": "Операции для работы со свойствами узла"
         },
         {
+            "name": "Resources",
+            "description": "Операции для работы с ресурсами"
+        },
+        {
+            "name": "Measures",
+            "description": "Операции для работы с единицами измерения"
+        },
+        {
             "name": "Users",
             "description": "Операции для работы с пользователями"
         },
         {
             "name": "Connections",
             "description": "Проверка соединения"
-        }
+        },
     ]
 )
 
@@ -324,13 +340,6 @@ async def update_node_details(id: int, details_update: SchemaNodeDetail):
 
     return {"status": "success", "data": new_details}
 
-class NodeData:
-    def __init__(self, id: int, name: str, cost: int, duration: int):
-        self.id = id
-        self.name = name
-        self.cost = cost
-        self.duration = duration
-
 @app.get("/start/{model_id}/", tags=["Simulation"])
 async def start_simulation(model_id: int):
     nodes = db.session.query(ModelNode).filter(ModelNode.model_id == model_id).all()
@@ -344,6 +353,48 @@ async def start_simulation(model_id: int):
 
     events = get_events_list(node_data, relations)
     return get_report(events, 200)
+
+@app.get("/resources/{sub_area_id}/", tags=["Resources"])
+async def get_resources(sub_area_id: int):
+    """Выгружает список ресурсов в выбранной ПО"""
+    resources = db.session.query(ModelResource).filter(ModelResource.sub_area_id == sub_area_id).all()
+    return resources
+
+@app.post("/resource/", tags=["Resources"])
+async def create_resource(resource: SchemaResource):
+    """Создает ресурс"""
+    sys_names = db.session.query(ModelResource).filter(and_(ModelResource.sub_area_id==resource.sub_area_id,
+                                                           ModelResource.type_id==resource.type_id)).all()
+    prefix = db.session.query(ModelResourceType).get(resource.type_id).prefix
+    sys_name = f"{prefix}{len(sys_names)+1}"
+    print(sys_name)
+    new_resource = ModelResource(sub_area_id=resource.sub_area_id, name=resource.name,
+                                 type_id=resource.type_id, measure_id=resource.measure_id,
+                                 min_value=resource.min_value, max_value=resource.max_value,
+                                 current_value=resource.current_value, sys_name=sys_name)
+    db.session.add(new_resource)
+    db.session.commit()
+    db.session.refresh(new_resource)
+    return new_resource
+@app.delete("/resource/{id}", tags=["Resources"])
+async def delete_resource(id: int):
+    res = db.session.query(ModelResource).get(id)
+    check_existance(res, "Такой ресурс не найден")
+    db.session.delete(res)
+    db.session.commit()
+    return {"status": "success", "message": "Ресурс успешно удален"}
+
+@app.get("/measures/", tags=["Measures"])
+async def get_measures():
+    """Возвращает список единиц измерения"""
+    measures = db.session.query(ModelMeasure).all()
+    return measures
+
+@app.get("/resourceTypes/", tags=["Resources"])
+async def get_resource_types():
+    """Возвращает список типов ресурсов"""
+    resource_types = db.session.query(ModelResourceType).all()
+    return resource_types
 
 @app.get("/", tags=["Connections"])
 async def ping():
