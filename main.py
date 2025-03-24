@@ -1,5 +1,5 @@
 import uvicorn
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.responses import JSONResponse
@@ -21,7 +21,13 @@ from db.schemas import NodeDetail as SchemaNodeDetail
 from db.database import Base
 from fastapi_sqlalchemy import DBSessionMiddleware, db
 
-from sqlalchemy import or_
+
+
+from shared.validation import check_existance
+from shared.Node.deletion import delete_node_details, delete_node_relation
+from shared.Model.deletion import delete_model_nodes
+from shared.SubjectArea.deletion import delete_subject_area_models
+
 from simulation import get_events_list, get_report
 
 import os
@@ -81,10 +87,6 @@ app.add_middleware(DBSessionMiddleware, db_url=os.environ['DATABASE_URL'])
 # Создание таблиц в базе данных
 Base.metadata.create_all(bind=engine)
 
-def check_existance(item: Base, details: str):
-    if not item:
-        raise HTTPException(status_code=404, detail=details)
-
 @app.get("/users/", tags=["Users"])
 async def get_users():
     """Возвращает список пользователей"""
@@ -129,6 +131,8 @@ async def delete_subject_area(id: int):
     db_sub_area = db.session.query(ModelSubjectArea).get(id)
     check_existance(db_sub_area, "Предметная область не найдена")
     name = db_sub_area.name
+
+    delete_subject_area_models(id)
     db.session.delete(db_sub_area)
     db.session.commit()
 
@@ -136,8 +140,7 @@ async def delete_subject_area(id: int):
 
 @app.get("/models/{sub_area_id}/", tags=["Models"])
 async def get_models(sub_area_id: int):
-    """Возвращает список моделей
-    """
+    """Возвращает список моделей"""
     models = db.session.query(ModelBpsimModel).filter((ModelBpsimModel.sub_area_id == sub_area_id)).all()
     return models
 
@@ -163,6 +166,8 @@ async def delete_model(id: int):
     db_model = db.session.query(ModelBpsimModel).get(id)
     check_existance(db_model,"Модель не найдена")
     name = db_model.name
+
+    delete_model_nodes(id)
     db.session.delete(db_model)
     db.session.commit()
 
@@ -232,12 +237,8 @@ async def delete_node(id: int):
     db_node = db.session.query(ModelNode).get(id)
     check_existance(db_node, "Узел не найден")
 
-    # db_node_details = db.session.query(ModelNodeDetail).filter_by(node_id=id).first()
-    # print(db_node_details)
-    # db.session.delete(db_node_details)
-    #
-    # db_relation = db.session.query(ModelRelation).filter(or_(ModelRelation.target_id==id, ModelRelation.source_id==id)).first()
-    # db.session.delete(db_relation)
+    delete_node_details(id)
+    delete_node_relation(id)
 
     name = db_node.name
     db.session.delete(db_node)
@@ -333,11 +334,13 @@ class NodeData:
 @app.get("/start/{model_id}/", tags=["Simulation"])
 async def start_simulation(model_id: int):
     nodes = db.session.query(ModelNode).filter(ModelNode.model_id == model_id).all()
-    relations = db.session.query(ModelRelation).filter(ModelRelation.model_id == model_id).all()
+    relations = (db.session.query(ModelRelation).filter(ModelRelation.model_id == model_id).all())
     node_data = []
     for node in nodes:
-        details = db.session.query(ModelNodeDetail).filter(ModelNodeDetail.node_id == node.id).first()
-        node_data.append(NodeData(id=node.id, name=node.name, duration=int(details.duration), cost = details.cost))
+        details = (db.session.query(ModelNodeDetail).filter(ModelNodeDetail.node_id == node.id).first())
+        node_data.append(NodeData(
+            id=node.id, name=node.name,
+            duration=int(details.duration), cost = details.cost))
 
     events = get_events_list(node_data, relations)
     return get_report(events, 200)
