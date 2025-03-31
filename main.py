@@ -366,8 +366,7 @@ async def create_resource(resource: SchemaResource):
     sys_names = db.session.query(ModelResource).filter(and_(ModelResource.sub_area_id==resource.sub_area_id,
                                                            ModelResource.type_id==resource.type_id)).all()
     prefix = db.session.query(ModelResourceType).get(resource.type_id).prefix
-    sys_name = f"{prefix}{len(sys_names)+1}"
-    print(sys_name)
+    sys_name = f"{prefix}Res{len(sys_names)+1}"
     new_resource = ModelResource(sub_area_id=resource.sub_area_id, name=resource.name,
                                  type_id=resource.type_id, measure_id=resource.measure_id,
                                  min_value=resource.min_value, max_value=resource.max_value,
