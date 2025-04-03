@@ -51,7 +51,7 @@ class NodeDetail(BaseModel):
 
 class NodeRes(BaseModel):
     node_id: int
-    value: float
+    value: str
     res_in_out: float
     res_id: int
     model_id: int

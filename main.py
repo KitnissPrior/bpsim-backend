@@ -14,7 +14,7 @@ from db.models import Relation as ModelRelation
 from db.models import NodeDetail as ModelNodeDetail
 from db.models import Resource as ModelResource
 from db.models import ResourceType as ModelResourceType
-from db.models import NodeDetail as ModelNodeRes
+from db.models import NodeRes as ModelNodeRes
 from db.models import Measure as ModelMeasure
 
 
@@ -51,7 +51,6 @@ app = FastAPI(
             "name": "Simulation",
             "description": "Запуск симуляции"
         },
-
         {
             "name": "Subject Areas",
             "description": "Операции для работы с ПО"
@@ -71,6 +70,10 @@ app = FastAPI(
         {
             "name": "Node Details",
             "description": "Операции для работы со свойствами узла"
+        },
+        {
+            "name": "Node Resources",
+            "description": "Операции для работы с ресурсами узла"
         },
         {
             "name": "Resources",
@@ -375,6 +378,7 @@ async def create_resource(resource: SchemaResource):
     db.session.commit()
     db.session.refresh(new_resource)
     return new_resource
+
 @app.delete("/resource/{id}", tags=["Resources"])
 async def delete_resource(id: int):
     res = db.session.query(ModelResource).get(id)
@@ -394,6 +398,21 @@ async def get_resource_types():
     """Возвращает список типов ресурсов"""
     resource_types = db.session.query(ModelResourceType).all()
     return resource_types
+
+@app.post("/nodeRes/", tags=["Node Resources"])
+async def create_node_resource(res: SchemaNodeRes):
+    new_node_res = ModelNodeRes(value=res.value, node_id=res.node_id,
+                                res_in_out=res.res_in_out,
+                                res_id=res.res_id, model_id=res.model_id)
+    db.session.add(new_node_res)
+    db.session.commit()
+    db.session.refresh(new_node_res)
+    return new_node_res
+
+@app.get("/nodeResources/", tags=["Node Resources"])
+async def get_node_resources(node_id: int):
+    resources = db.session.query(ModelNodeRes).filter(ModelNodeRes.node_id==node_id).all()
+    return resources
 
 @app.get("/", tags=["Connections"])
 async def ping():
