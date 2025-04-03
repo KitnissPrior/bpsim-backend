@@ -95,7 +95,7 @@ class Resource(Base):
     min_value = Column(Float)
     measure_id = Column(Integer, ForeignKey('measures.id'), nullable=True)
     #relations
-    nodes = relationship("NodeRes", cascade="all, delete-orphan")
+    #nodes = relationship("NodeRes", cascade="all, delete-orphan")
 
 class ResourceType(Base):
     __tablename__ = "resource_types"
