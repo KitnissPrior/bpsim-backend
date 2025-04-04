@@ -35,8 +35,8 @@ from shared.Node.deletion import delete_node_details, delete_node_relation
 from shared.Model.deletion import delete_model_nodes
 from shared.SubjectArea.deletion import delete_subject_area_models
 
-from simulation import get_events_list, get_report
-from shared.Node.types import NodeData
+from simulation.simulation import get_events_list, get_report
+from simulation.types import SimulationNodedata
 
 import os
 from dotenv import load_dotenv
@@ -343,19 +343,25 @@ async def update_node_details(id: int, details_update: SchemaNodeDetail):
 
     return {"status": "success", "data": new_details}
 
-@app.get("/start/{model_id}/", tags=["Simulation"])
-async def start_simulation(model_id: int):
+@app.get("/start/{sub_area_id}/{model_id}/", tags=["Simulation"])
+async def start_simulation(sub_area_id: int, model_id: int):
     nodes = db.session.query(ModelNode).filter(ModelNode.model_id == model_id).all()
     relations = (db.session.query(ModelRelation).filter(ModelRelation.model_id == model_id).all())
     node_data = []
     for node in nodes:
         details = (db.session.query(ModelNodeDetail).filter(ModelNodeDetail.node_id == node.id).first())
-        node_data.append(NodeData(
+        resources_in = db.session.query(ModelNodeRes).filter(and_(ModelNodeRes.node_id == node.id,
+                                                                  ModelNodeRes.res_in_out == 0)).all()
+        resources_out = db.session.query(ModelNodeRes).filter(and_(ModelNodeRes.node_id == node.id,
+                                                                  ModelNodeRes.res_in_out == 1)).all()
+        node_data.append(SimulationNodedata(
             id=node.id, name=node.name,
-            duration=int(details.duration), cost = details.cost))
+            duration=int(details.duration), cost = details.cost,
+            resources_in=resources_in, resources_out=resources_out))
 
+    sub_area_resources = db.session.query(ModelResource).filter(ModelResource.sub_area_id == sub_area_id).all()
     events = get_events_list(node_data, relations)
-    return get_report(events, 200)
+    return get_report(events, 500, sub_area_resources)
 
 @app.get("/resources/{sub_area_id}/", tags=["Resources"])
 async def get_resources(sub_area_id: int):
@@ -409,7 +415,7 @@ async def create_node_resource(res: SchemaNodeRes):
     db.session.refresh(new_node_res)
     return new_node_res
 
-@app.get("/nodeResources/", tags=["Node Resources"])
+@app.get("/nodeResources/{node_id}/", tags=["Node Resources"])
 async def get_node_resources(node_id: int):
     resources = db.session.query(ModelNodeRes).filter(ModelNodeRes.node_id==node_id).all()
     return resources
