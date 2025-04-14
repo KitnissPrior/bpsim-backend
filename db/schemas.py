@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, Any
 
 class User(BaseModel):
     username: str
@@ -80,6 +80,13 @@ class Resource(BaseModel):
 
 class Measure(BaseModel):
     name: str
+
+    class Config:
+        orm_mode = True
+
+class SimulationResponse(BaseModel):
+    report: list[str]
+    table: Any
 
     class Config:
         orm_mode = True

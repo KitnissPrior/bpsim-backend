@@ -26,6 +26,7 @@ from db.schemas import Relation as SchemaRelation
 from db.schemas import NodeDetail as SchemaNodeDetail
 from db.schemas import Resource as SchemaResource
 from db.schemas import NodeRes as SchemaNodeRes
+from db.schemas import SimulationResponse
 from db.database import Base
 
 from fastapi_sqlalchemy import DBSessionMiddleware, db
@@ -35,7 +36,7 @@ from shared.Node.deletion import delete_node_details, delete_node_relation
 from shared.Model.deletion import delete_model_nodes
 from shared.SubjectArea.deletion import delete_subject_area_models
 
-from simulation.simulation import get_events_list, get_report
+from simulation.sim import get_events_list, get_report
 from simulation.types import SimulationNodedata
 
 import os
@@ -361,7 +362,8 @@ async def start_simulation(sub_area_id: int, model_id: int):
 
     sub_area_resources = db.session.query(ModelResource).filter(ModelResource.sub_area_id == sub_area_id).all()
     events = get_events_list(node_data, relations)
-    return get_report(events, 500, sub_area_resources)
+    (report, table) = get_report(events, 500, sub_area_resources)
+    return {"report": report, "resources": table}
 
 @app.get("/resources/{sub_area_id}/", tags=["Resources"])
 async def get_resources(sub_area_id: int):

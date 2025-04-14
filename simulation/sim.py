@@ -1,5 +1,3 @@
-import re
-
 import simpy
 from db.models import NodeRes, Resource
 from simulation.types import SimulationRes
@@ -18,7 +16,7 @@ def get_events_list(nodes: [], relations: []) -> list:
 
 cost = 0
 report = []
-simulation_res_table = [SimulationRes]
+simulation_res_table = []
 current_res_values = {}
 
 def change_resources(node_resources: [NodeRes]):
@@ -53,8 +51,6 @@ def change_resources_out(node_resources_out: [NodeRes], env, duration, name):
     change_resources(node_resources_out)
     report.append(f'{name} - окончание в {env.now}')
 
-
-
 def start(env, events):
     """Запускает симуляцию"""
     global cost, report
@@ -70,7 +66,7 @@ def start(env, events):
 
 def get_report(events: [], time_limit: int, sub_area_resources: [Resource]):
     """Возвращает отчет по симуляции"""
-    global report, current_res_values
+    global report, current_res_values, simulation_res_table
     #очищаем предыдущие результаты эксперимента
     report.clear()
     #формируем словарь текущих значений ресурсов ПО для хранения информации об изменениях на входе/выходе;
@@ -87,4 +83,6 @@ def get_report(events: [], time_limit: int, sub_area_resources: [Resource]):
     report.append(f'Конец симуляции')
     report.append(f'Время симуляции - {time_limit}')
     report.append(f'Общие затраты: {cost}')
-    return report
+    for row in simulation_res_table:
+        print(row.sys_name, row.value)
+    return report, simulation_res_table
