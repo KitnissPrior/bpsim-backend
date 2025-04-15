@@ -19,7 +19,7 @@ report = []
 simulation_res_table = []
 current_res_values = {}
 
-def change_resources(node_resources: [NodeRes]):
+def change_resources(node_resources: [NodeRes], time: float):
     global current_res_values, simulation_res_table
     for res in node_resources:
         formula_parts = res.value.split(":=")
@@ -41,14 +41,14 @@ def change_resources(node_resources: [NodeRes]):
         elif math_operation[0] == "*":
             current_res['value'] = current_res_values[other_res_sys_name]['value'] * coefficient
 
-        simulation_res_table.append(SimulationRes(id=current_res['id'], sys_name=sys_name,
+        simulation_res_table.append(SimulationRes(id=current_res['id'], sys_name=sys_name, time=time,
                                                       name=current_res['name'], value=current_res['value']))
         report.append(f"Новое значение ресурса {current_res['name']}: {current_res['value']}")
 
 def change_resources_out(node_resources_out: [NodeRes], env, duration, name):
     global report
     yield env.timeout(duration)
-    change_resources(node_resources_out)
+    change_resources(node_resources_out, env.now)
     report.append(f'{name} - окончание в {env.now}')
 
 def start(env, events):
@@ -56,9 +56,10 @@ def start(env, events):
     global cost, report
     while True:
         for event in events:
-            report.append(f'{event.name} - начало в {env.now}')
+            time_start = env.now
+            report.append(f'{event.name} - начало в {time_start}')
             if len(event.db_resources_in) > 0:
-                change_resources(event.db_resources_in)
+                change_resources(event.db_resources_in, time_start)
             cost += event.cost
             yield env.process(change_resources_out(event.db_resources_out, env, event.duration, event.name))
             report.append(" ")
