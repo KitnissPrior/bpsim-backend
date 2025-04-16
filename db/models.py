@@ -131,15 +131,9 @@ class ModelControl(Base):
 
     id = Column(Integer, primary_key=True, unique=True)
     model_id = Column(Integer, ForeignKey('models.id'))
-    type_id = Column(Integer, ForeignKey('control_types.id'))
+    type = Column(Integer)
     control_name = Column(String)
     pos_x = Column(Float)
     pos_y = Column(Float)
     width = Column(Float, nullable=True)
     height = Column(Float, nullable=True)
-
-class ControlType(Base):
-    __tablename__ = "control_types"
-
-    id = Column(Integer, primary_key=True, unique=True)
-    name = Column(String)

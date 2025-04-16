@@ -109,9 +109,3 @@ class ModelControl(BaseModel):
 
     class Config:
         orm_mode = True
-
-class ControlType(BaseModel):
-    name: str
-
-    class Config:
-        orm_mode = True
