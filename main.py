@@ -16,7 +16,8 @@ from db.models import Resource as ModelResource
 from db.models import ResourceType as ModelResourceType
 from db.models import NodeRes as ModelNodeRes
 from db.models import Measure as ModelMeasure
-
+from db.models import ControlType as ModelControlType
+from db.models import ModelControl as ModelBpsimModelControl
 
 from db.schemas import User as SchemaUser
 from db.schemas import Node as SchemaNode
@@ -26,7 +27,8 @@ from db.schemas import Relation as SchemaRelation
 from db.schemas import NodeDetail as SchemaNodeDetail
 from db.schemas import Resource as SchemaResource
 from db.schemas import NodeRes as SchemaNodeRes
-from db.schemas import SimulationResponse
+from db.schemas import ControlType as SchemaControlType
+from db.schemas import ModelControl as SchemaModelControl
 from db.database import Base
 
 from fastapi_sqlalchemy import DBSessionMiddleware, db
@@ -61,6 +63,14 @@ app = FastAPI(
             "description": "Операции для работы с моделями"
         },
         {
+            "name": "Model Controls",
+            "description": "Операции для работы с компонентами управления моделью"
+        },
+        {
+            "name": "Control Types",
+            "description": "Операции для работы с типами компонентов модели"
+        },
+        {
             "name": "Nodes",
             "description": "Операции для работы с узлами"
         },
@@ -83,6 +93,10 @@ app = FastAPI(
         {
             "name": "Measures",
             "description": "Операции для работы с единицами измерения"
+        },
+        {
+            "name": "Charts",
+            "description": "Операции для работы с графиками"
         },
         {
             "name": "Users",
@@ -421,6 +435,19 @@ async def create_node_resource(res: SchemaNodeRes):
 async def get_node_resources(node_id: int):
     resources = db.session.query(ModelNodeRes).filter(ModelNodeRes.node_id==node_id).all()
     return resources
+
+@app.get('/controlTypes/', tags=["Control Types"])
+async def get_control_types():
+    control_types = db.session.query(ModelControlType).all()
+    return control_types
+
+@app.post('/controlTypes/', tags=["Control Types"])
+async def create_control_type(type: SchemaControlType):
+    new_control_type = ModelControlType(name=type.name)
+    db.session.add(new_control_type)
+    db.session.commit()
+    db.session.refresh(new_control_type)
+    return new_control_type
 
 @app.get("/", tags=["Connections"])
 async def ping():
