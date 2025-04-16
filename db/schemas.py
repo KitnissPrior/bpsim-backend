@@ -84,9 +84,28 @@ class Measure(BaseModel):
     class Config:
         orm_mode = True
 
-class SimulationResponse(BaseModel):
-    report: list[str]
-    table: Any
+class Chart(BaseModel):
+    name: str
+    model_id: int
+    object_id: int
+    x_legend: str
+    y_legend: str
+    pos_x: float
+    pos_y: float
+    width: Optional[float] = None
+    height: Optional[float] = None
+
+    class Config:
+        orm_mode = True
+
+class ModelControl(BaseModel):
+    model_id: int
+    type_id: int
+    control_name: str
+    pos_x: float
+    pos_y: float
+    width: Optional[float] = None
+    height: Optional[float] = None
 
     class Config:
         orm_mode = True
