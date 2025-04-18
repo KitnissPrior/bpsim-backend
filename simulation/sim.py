@@ -1,17 +1,20 @@
 import simpy
 from db.models import NodeRes, Resource
 from simulation.types import SimulationRes
-
+from simulation.topological_sort import get_sorted_node_ids
 
 def get_events_list(nodes: [], relations: []) -> list:
     """Возвращает список событий"""
     events_list = []
-    relations.sort(key=lambda rel: rel.source_id)
-    for relation in relations:
-        node = next((node for node in nodes if node.id == relation.source_id), None)
-        events_list.append(node)
-        nodes.pop(nodes.index(node))
-    events_list.append(nodes[0])
+    #выполняем топологическую сортировку узлов по связям между ними
+    sorted_node_ids = get_sorted_node_ids(relations)
+    # словарь для быстрого доступа к узлам по ID
+    node_dict = {node.id: node for node in nodes}
+
+    # формируем новый список в нужном порядке
+    for node_id in sorted_node_ids:
+        if node_id in node_dict:
+            events_list.append(node_dict[node_id])
     return events_list
 
 cost = 0
@@ -70,6 +73,7 @@ def get_report(events: [], time_limit: int, sub_area_resources: [Resource]):
     global report, current_res_values, simulation_res_table
     #очищаем предыдущие результаты эксперимента
     report.clear()
+    simulation_res_table.clear()
     #формируем словарь текущих значений ресурсов ПО для хранения информации об изменениях на входе/выходе;
     #ключ - системное имя ресурса
     res_values_list = [{'sys_name': res.sys_name, 'id': res.id,
