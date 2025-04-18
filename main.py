@@ -465,7 +465,7 @@ async def create_chart(chart: SchemaChart):
     db.session.refresh(new_chart)
     return new_chart
 
-@app.delete("/chart/{chart_id}", tags=["Charts"])
+@app.delete("/chart/{chart_id}/", tags=["Charts"])
 async def delete_chart(id: int):
     chart = db.session.query(ModelChart).get(id)
     check_existance(chart, 'Диаграмма с таким id не найдена')
