@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, Any
 
 class User(BaseModel):
     username: str
@@ -80,6 +80,32 @@ class Resource(BaseModel):
 
 class Measure(BaseModel):
     name: str
+
+    class Config:
+        orm_mode = True
+
+class Chart(BaseModel):
+    name: str
+    model_id: int
+    object_id: int
+    x_legend: str
+    y_legend: str
+    pos_x: float
+    pos_y: float
+    width: Optional[float] = None
+    height: Optional[float] = None
+
+    class Config:
+        orm_mode = True
+
+class ModelControl(BaseModel):
+    model_id: int
+    type_id: int
+    control_name: str
+    pos_x: float
+    pos_y: float
+    width: Optional[float] = None
+    height: Optional[float] = None
 
     class Config:
         orm_mode = True

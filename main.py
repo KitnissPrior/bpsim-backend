@@ -16,7 +16,8 @@ from db.models import Resource as ModelResource
 from db.models import ResourceType as ModelResourceType
 from db.models import NodeRes as ModelNodeRes
 from db.models import Measure as ModelMeasure
-
+from db.models import Chart as ModelChart
+from db.models import ModelControl as ModelBpsimModelControl
 
 from db.schemas import User as SchemaUser
 from db.schemas import Node as SchemaNode
@@ -26,17 +27,21 @@ from db.schemas import Relation as SchemaRelation
 from db.schemas import NodeDetail as SchemaNodeDetail
 from db.schemas import Resource as SchemaResource
 from db.schemas import NodeRes as SchemaNodeRes
+from db.schemas import Chart as SchemaChart
+from db.schemas import ModelControl as SchemaModelControl
 from db.database import Base
 
 from fastapi_sqlalchemy import DBSessionMiddleware, db
 
+from shared.enums.control_types import ControlType
 from shared.validation import check_existance
 from shared.Node.deletion import delete_node_details, delete_node_relation
 from shared.Model.deletion import delete_model_nodes
 from shared.SubjectArea.deletion import delete_subject_area_models
+from shared.Model.deletion import delete_model_control_by_id
 
-from simulation import get_events_list, get_report
-from shared.Node.types import NodeData
+from simulation.sim import get_events_list, get_report
+from simulation.types import SimulationNodedata
 
 import os
 from dotenv import load_dotenv
@@ -58,6 +63,10 @@ app = FastAPI(
         {
             "name": "Models",
             "description": "Операции для работы с моделями"
+        },
+        {
+            "name": "Model Controls",
+            "description": "Операции для работы с компонентами управления моделью"
         },
         {
             "name": "Nodes",
@@ -82,6 +91,10 @@ app = FastAPI(
         {
             "name": "Measures",
             "description": "Операции для работы с единицами измерения"
+        },
+        {
+            "name": "Charts",
+            "description": "Операции для работы с диаграммами"
         },
         {
             "name": "Users",
@@ -343,19 +356,26 @@ async def update_node_details(id: int, details_update: SchemaNodeDetail):
 
     return {"status": "success", "data": new_details}
 
-@app.get("/start/{model_id}/", tags=["Simulation"])
-async def start_simulation(model_id: int):
+@app.get("/start/{sub_area_id}/{model_id}/", tags=["Simulation"])
+async def start_simulation(sub_area_id: int, model_id: int):
     nodes = db.session.query(ModelNode).filter(ModelNode.model_id == model_id).all()
     relations = (db.session.query(ModelRelation).filter(ModelRelation.model_id == model_id).all())
     node_data = []
     for node in nodes:
         details = (db.session.query(ModelNodeDetail).filter(ModelNodeDetail.node_id == node.id).first())
-        node_data.append(NodeData(
+        resources_in = db.session.query(ModelNodeRes).filter(and_(ModelNodeRes.node_id == node.id,
+                                                                  ModelNodeRes.res_in_out == 0)).all()
+        resources_out = db.session.query(ModelNodeRes).filter(and_(ModelNodeRes.node_id == node.id,
+                                                                  ModelNodeRes.res_in_out == 1)).all()
+        node_data.append(SimulationNodedata(
             id=node.id, name=node.name,
-            duration=int(details.duration), cost = details.cost))
+            duration=int(details.duration), cost = details.cost,
+            resources_in=resources_in, resources_out=resources_out))
 
+    sub_area_resources = db.session.query(ModelResource).filter(ModelResource.sub_area_id == sub_area_id).all()
     events = get_events_list(node_data, relations)
-    return get_report(events, 200)
+    (report, table) = get_report(events, 500, sub_area_resources)
+    return {"report": report, "table": table}
 
 @app.get("/resources/{sub_area_id}/", tags=["Resources"])
 async def get_resources(sub_area_id: int):
@@ -409,10 +429,49 @@ async def create_node_resource(res: SchemaNodeRes):
     db.session.refresh(new_node_res)
     return new_node_res
 
-@app.get("/nodeResources/", tags=["Node Resources"])
+@app.get("/nodeResources/{node_id}/", tags=["Node Resources"])
 async def get_node_resources(node_id: int):
     resources = db.session.query(ModelNodeRes).filter(ModelNodeRes.node_id==node_id).all()
     return resources
+
+@app.get('/modelControls/{model_id}', tags=["Model Controls"])
+async def get_model_controls(model_id: int):
+    controls = db.session.query(ModelBpsimModelControl).filter(ModelBpsimModelControl.model_id == model_id).all()
+    return controls
+
+@app.get('/chart/{chart_id}/', tags=["Charts"])
+async def get_chart(id: int):
+    chart = db.session.query(ModelChart).get(id)
+    check_existance(chart, 'Диаграмма с таким id не найдена')
+    return chart
+
+@app.get('/charts/{model_id}', tags=["Charts"])
+async def get_charts(model_id: int):
+    charts = db.session.query(ModelChart).filter(ModelChart.model_id == model_id).all()
+    return charts
+
+@app.post('/chart/', tags=["Charts"])
+async def create_chart(chart: SchemaChart):
+    new_control = ModelBpsimModelControl(model_id=chart.model_id, type = ControlType.CHART,
+                                         control_name = chart.name, pos_x = chart.pos_x, pos_y = chart.pos_y,
+                                         width = chart.width, height = chart.height)
+    db.session.add(new_control)
+    db.session.commit()
+    db.session.refresh(new_control)
+    new_chart = ModelChart(name=chart.name, model_id=chart.model_id, object_id = chart.object_id,
+                           x_legend = chart.x_legend, y_legend = chart.y_legend, control_id = new_control.id)
+    db.session.add(new_chart)
+    db.session.commit()
+    db.session.refresh(new_chart)
+    return new_chart
+
+@app.delete("/chart/{chart_id}/", tags=["Charts"])
+async def delete_chart(id: int):
+    chart = db.session.query(ModelChart).get(id)
+    check_existance(chart, 'Диаграмма с таким id не найдена')
+    name = chart.name
+    delete_model_control_by_id(chart.control_id)
+    return {"status": "success", "message": f"Диаграмма '{name}' успешно удалена"}
 
 @app.get("/", tags=["Connections"])
 async def ping():

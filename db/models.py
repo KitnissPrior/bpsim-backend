@@ -41,6 +41,7 @@ class Node(Base):
     posY = Column(Float)
     # FK
     model_id = Column(Integer, ForeignKey('models.id'), nullable=True)
+    control_id = Column(Integer, ForeignKey('model_controls.id'), nullable=True)
     # relations
     # для связей, где текущий узел является источником
     outgoing_relations = relationship(
@@ -114,4 +115,25 @@ class Measure(Base):
     #relations
     resource = relationship("Resource", cascade="all, delete-orphan")
 
+class Chart(Base):
+    __tablename__ = "charts"
 
+    id = Column(Integer, primary_key=True, unique=True)
+    model_id = Column(Integer)
+    control_id = Column(Integer)
+    name = Column(String)
+    object_id = Column(Integer)
+    x_legend = Column(String)
+    y_legend = Column(String)
+
+class ModelControl(Base):
+    __tablename__ = "model_controls"
+
+    id = Column(Integer, primary_key=True, unique=True)
+    model_id = Column(Integer, ForeignKey('models.id'))
+    type = Column(Integer)
+    control_name = Column(String)
+    pos_x = Column(Float)
+    pos_y = Column(Float)
+    width = Column(Float, nullable=True)
+    height = Column(Float, nullable=True)
