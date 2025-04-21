@@ -253,7 +253,7 @@ async def update_node(id: int, node_update: SchemaNode):
     db_node = db.session.query(ModelNode).get(id)
     check_existance(db_node, "Узел не найден")
 
-    check_node_name_unique(node_update.name, node_update.model_id)
+    check_node_name_unique(node_update, id)
 
     # Обновляем только те поля, которые были переданы
     for key, value in node_update.dict(exclude_none=True).items():

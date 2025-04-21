@@ -5,6 +5,7 @@ from db.models import Model
 from db.models import Node
 from db.models import Resource as ModelRes
 from db.schemas import Resource as SchemaRes
+from db.schemas import Node as SchemaNode
 
 from fastapi_sqlalchemy import db
 from sqlalchemy import and_
@@ -30,8 +31,9 @@ def check_resource_name_unique(res: SchemaRes):
     if another_item:
         raise HTTPException(status_code=409, detail='Ресурс с таким именем уже есть')
 
-def check_node_name_unique(name: str, model_id: int):
-    another_item = db.session.query(Node).filter(
-        and_(Node.model_id == model_id, Node.name == name)).first()
-    if another_item:
+def check_node_name_unique(node: SchemaNode, id: int):
+    another_items = db.session.query(Node).filter(
+        and_(Node.model_id == node.model_id, Node.name == node.name,
+             Node.id != id)).first()
+    if another_items:
         raise HTTPException(status_code=409, detail='Узел с таким именем уже есть')
