@@ -8,5 +8,12 @@
       <jdbc-url>jdbc:postgresql://localhost:5432/bpsim</jdbc-url>
       <working-dir>$ProjectFileDir$</working-dir>
     </data-source>
+    <data-source source="LOCAL" name="bpsim-web@localhost" uuid="6eb482ea-48bf-4c20-8d5b-67ef1812a8b5">
+      <driver-ref>postgresql</driver-ref>
+      <synchronize>true</synchronize>
+      <jdbc-driver>org.postgresql.Driver</jdbc-driver>
+      <jdbc-url>jdbc:postgresql://localhost:5432/bpsim-web</jdbc-url>
+      <working-dir>$ProjectFileDir$</working-dir>
+    </data-source>
   </component>
 </project>
