@@ -16,8 +16,8 @@ class SubjectArea(Base):
     name = Column(String)
     description = Column(String, nullable=True)
     # relations
-    models = relationship("Model", cascade="all, delete-orphan")
-    resources = relationship("Resource", cascade="all, delete-orphan")
+    #models = relationship("Model", cascade="all, delete-orphan")
+    #resources = relationship("Resource", cascade="all, delete-orphan")
 
 class Model(Base):
     __tablename__ = "models"
@@ -27,9 +27,9 @@ class Model(Base):
     description = Column(String)
     sub_area_id = Column(Integer, ForeignKey('subject_areas.id'))
     #relations
-    nodes = relationship("Node", cascade="all, delete-orphan")
-    relations = relationship("Relation", cascade="all, delete-orphan")
-    node_resources = relationship("NodeRes", cascade="all, delete-orphan")
+    #nodes = relationship("Node", cascade="all, delete-orphan")
+    #relations = relationship("Relation", cascade="all, delete-orphan")
+    #node_resources = relationship("NodeRes", cascade="all, delete-orphan")
 
 class Node(Base):
     __tablename__ = "nodes"
@@ -54,8 +54,6 @@ class Node(Base):
         "Relation",
         foreign_keys="[Relation.target_id]",
     )
-    node_details = relationship("NodeDetail", cascade="all, delete-orphan")
-    node_resources = relationship("NodeRes", cascade="all, delete-orphan")
 
 class Relation(Base):
     __tablename__ = "relations"
@@ -64,6 +62,17 @@ class Relation(Base):
     source_id = Column(Integer, ForeignKey('nodes.id'))
     target_id = Column(Integer, ForeignKey('nodes.id'))
     model_id = Column(Integer, ForeignKey('models.id'))
+
+    source_node = relationship(
+        "Node",
+        foreign_keys="[Relation.source_id]",
+        back_populates="outgoing_relations"
+    )
+    target_node = relationship(
+        "Node",
+        foreign_keys="[Relation.target_id]",
+        back_populates="incoming_relations"
+    )
 
 class NodeDetail(Base):
     __tablename__ = "node_details"
@@ -95,8 +104,6 @@ class Resource(Base):
     max_value = Column(Float)
     min_value = Column(Float)
     measure_id = Column(Integer, ForeignKey('measures.id'), nullable=True)
-    #relations
-    #nodes = relationship("NodeRes", cascade="all, delete-orphan")
 
 class ResourceType(Base):
     __tablename__ = "resource_types"
@@ -113,16 +120,16 @@ class Measure(Base):
     id = Column(Integer, primary_key=True, unique=True)
     name = Column(String, nullable=True)
     #relations
-    resource = relationship("Resource", cascade="all, delete-orphan")
+    #resource = relationship("Resource", cascade="all, delete-orphan")
 
 class Chart(Base):
     __tablename__ = "charts"
 
     id = Column(Integer, primary_key=True, unique=True)
-    model_id = Column(Integer)
-    control_id = Column(Integer)
+    model_id = Column(Integer, ForeignKey('models.id'))
+    control_id = Column(Integer, ForeignKey('model_controls.id'))
     name = Column(String)
-    object_id = Column(Integer)
+    object_id = Column(Integer, ForeignKey('resources.id'))
     x_legend = Column(String)
     y_legend = Column(String)
 

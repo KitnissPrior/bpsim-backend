@@ -38,37 +38,44 @@ def change_resources(node_resources: [NodeRes], time: float):
         formula = formula_parts[1].translate(str.maketrans({'+': ' ', '-': ' ', '*': ' ', '/': ' '})).split()
         other_res_sys_name = formula[0]
         math_operation = formula_parts[1].removeprefix(other_res_sys_name)
-        current_res = current_res_values[sys_name]
 
-        report.append(f"Выполняется операция {math_operation} над ресурсом {sys_name} '{current_res['name']}'...")
+        if (sys_name not in current_res_values) or (other_res_sys_name not in current_res_values):
+            if sys_name not in current_res_values:
+                report.append(f"ОШИБКА! Ресурс '{sys_name}' не опознан в формуле {res.value}")
+            if other_res_sys_name not in current_res_values:
+                report.append(f"ОШИБКА! Ресурс '{other_res_sys_name}' не опознан в формуле {res.value}")
+        else:
+            current_res = current_res_values[sys_name]
 
-        report.append(f"Текущее значение ресурса {current_res['name']}: {current_res['current_value']}")
-        coefficient = float(math_operation[1:])
+            report.append(f"Выполняется операция {math_operation} над ресурсом {sys_name} '{current_res['name']}'...")
 
-        min_value = current_res['min_value']
-        max_value = current_res['max_value']
+            report.append(f"Текущее значение ресурса {current_res['name']}: {current_res['current_value']}")
+            coefficient = float(math_operation[1:])
 
-        if math_operation[0] == "+" or math_operation[0] == "-":
-            current_res['current_value'] = set_resource_value_in_limits(
-                current_res_values[other_res_sys_name]['current_value'] + float(math_operation),
-                min_value,
-                max_value)
+            min_value = current_res['min_value']
+            max_value = current_res['max_value']
 
-        elif math_operation[0] == "/":
-            current_res['current_value'] = set_resource_value_in_limits(
-                current_res_values[other_res_sys_name]['current_value'] / coefficient,
-                min_value,
-                max_value)
+            if math_operation[0] == "+" or math_operation[0] == "-":
+                current_res['current_value'] = set_resource_value_in_limits(
+                    current_res_values[other_res_sys_name]['current_value'] + float(math_operation),
+                    min_value,
+                    max_value)
 
-        elif math_operation[0] == "*":
-            current_res['current_value'] = set_resource_value_in_limits(
-                current_res_values[other_res_sys_name]['current_value'] * coefficient,
-                min_value, max_value)
+            elif math_operation[0] == "/":
+                current_res['current_value'] = set_resource_value_in_limits(
+                    current_res_values[other_res_sys_name]['current_value'] / coefficient,
+                    min_value,
+                    max_value)
 
-        simulation_res_table.append(SimulationRes(id=current_res['id'], sys_name=sys_name, time=time,
-                                                      name=current_res['name'],
-                                                  value=current_res['current_value']))
-        report.append(f"Новое значение ресурса {current_res['name']}: {current_res['current_value']}")
+            elif math_operation[0] == "*":
+                current_res['current_value'] = set_resource_value_in_limits(
+                    current_res_values[other_res_sys_name]['current_value'] * coefficient,
+                    min_value, max_value)
+
+            simulation_res_table.append(SimulationRes(id=current_res['id'], sys_name=sys_name, time=time,
+                                                          name=current_res['name'],
+                                                      value=current_res['current_value']))
+            report.append(f"Новое значение ресурса {current_res['name']}: {current_res['current_value']}")
 
 def change_resources_out(node_resources_out: [NodeRes], env, duration, name):
     global report
@@ -114,6 +121,4 @@ def get_report(events: [], time_limit: int, sub_area_resources: [Resource]):
     report.append(f'Конец симуляции')
     report.append(f'Время симуляции - {time_limit}')
     report.append(f'Общие затраты: {cost}')
-    for row in simulation_res_table:
-        print(row.sys_name, row.value)
     return report, simulation_res_table
