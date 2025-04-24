@@ -34,10 +34,8 @@ from db.database import Base
 from fastapi_sqlalchemy import DBSessionMiddleware, db
 
 from shared.enums.control_types import ControlType
-from shared.validation import check_existance
-from shared.Node.deletion import delete_node_details, delete_node_relation
-from shared.Model.deletion import delete_model_nodes
-from shared.SubjectArea.deletion import delete_subject_area_models
+from shared.validation import (check_existance, check_sub_area_name_unique, check_model_name_unique,
+                               check_resource_name_unique, check_node_name_unique)
 from shared.Model.deletion import delete_model_control_by_id
 
 from simulation.sim import get_events_list, get_report
@@ -151,6 +149,8 @@ async def get_subject_area(id: int):
 @app.post("/subjectArea/", tags=["Subject Areas"])
 async def create_subject_area(area: SchemaSubjectArea):
     """Добавляет ПО"""
+    check_sub_area_name_unique(area.name)
+
     db_sub_area = ModelSubjectArea(name=area.name, description=area.description)
     db.session.add(db_sub_area)
     db.session.commit()
@@ -164,7 +164,6 @@ async def delete_subject_area(id: int):
     check_existance(db_sub_area, "Предметная область не найдена")
     name = db_sub_area.name
 
-    delete_subject_area_models(id)
     db.session.delete(db_sub_area)
     db.session.commit()
 
@@ -186,6 +185,8 @@ async def get_model(id: int):
 @app.post("/model/", tags=["Models"])
 async def create_model(model: SchemaBpsimModel):
     """Добавляет модель"""
+    check_model_name_unique(model.name, model.sub_area_id)
+
     model = ModelBpsimModel(name=model.name, description=model.description, sub_area_id = model.sub_area_id)
     db.session.add(model)
     db.session.commit()
@@ -199,7 +200,6 @@ async def delete_model(id: int):
     check_existance(db_model,"Модель не найдена")
     name = db_model.name
 
-    delete_model_nodes(id)
     db.session.delete(db_model)
     db.session.commit()
 
@@ -253,6 +253,8 @@ async def update_node(id: int, node_update: SchemaNode):
     db_node = db.session.query(ModelNode).get(id)
     check_existance(db_node, "Узел не найден")
 
+    check_node_name_unique(node_update, id)
+
     # Обновляем только те поля, которые были переданы
     for key, value in node_update.dict(exclude_none=True).items():
         setattr(db_node, key, value)
@@ -268,9 +270,6 @@ async def delete_node(id: int):
     """Удаляет узел по id"""
     db_node = db.session.query(ModelNode).get(id)
     check_existance(db_node, "Узел не найден")
-
-    delete_node_details(id)
-    delete_node_relation(id)
 
     name = db_node.name
     db.session.delete(db_node)
@@ -374,8 +373,8 @@ async def start_simulation(sub_area_id: int, model_id: int):
 
     sub_area_resources = db.session.query(ModelResource).filter(ModelResource.sub_area_id == sub_area_id).all()
     events = get_events_list(node_data, relations)
-    (report, table) = get_report(events, 500, sub_area_resources)
-    return {"report": report, "table": table}
+    (report, chart_table, export_table) = get_report(events, 500, sub_area_resources)
+    return {"report": report, "chart_table": chart_table, "export_table": export_table}
 
 @app.get("/resources/{sub_area_id}/", tags=["Resources"])
 async def get_resources(sub_area_id: int):
@@ -386,6 +385,8 @@ async def get_resources(sub_area_id: int):
 @app.post("/resource/", tags=["Resources"])
 async def create_resource(resource: SchemaResource):
     """Создает ресурс"""
+    check_resource_name_unique(resource)
+
     sys_names = db.session.query(ModelResource).filter(and_(ModelResource.sub_area_id==resource.sub_area_id,
                                                            ModelResource.type_id==resource.type_id)).all()
     prefix = db.session.query(ModelResourceType).get(resource.type_id).prefix

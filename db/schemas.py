@@ -88,7 +88,7 @@ class Chart(BaseModel):
     name: str
     model_id: int
     object_id: int
-    x_legend: str
+    x_legend: Optional[str] = None
     y_legend: str
     pos_x: float
     pos_y: float
