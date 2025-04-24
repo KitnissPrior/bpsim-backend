@@ -21,16 +21,29 @@ def get_events_list(nodes: [], relations: []) -> list:
 cost = 0
 report = []
 simulation_res_table = []
+table_for_export = []
 current_res_values = {}
 
 def set_resource_value_in_limits(new_val, min_val, max_val):
+    """Устанавливает значение ресурса в заданных пределах"""
     if new_val < min_val:
         return min_val
     if new_val > max_val:
         return max_val
     return new_val
 
+def add_resources_to_export_table(time: float):
+    """Добавляет данные ресурсов в таблицу для экспорта"""
+    global current_res_values, table_for_export
+
+    sys_name_headers = table_for_export[1]
+    sim_values_now = [current_res_values[sys_name]['current_value'] for sys_name in sys_name_headers if sys_name != 't']
+    sim_values_now.insert(0, time)
+
+    table_for_export.append(sim_values_now)
+
 def change_resources(node_resources: [NodeRes], time: float):
+    """Изменяет ресурсы в рамках одного этапа симуляции"""
     global current_res_values, simulation_res_table
     for res in node_resources:
         formula_parts = res.value.split(":=")
@@ -77,7 +90,11 @@ def change_resources(node_resources: [NodeRes], time: float):
                                                       value=current_res['current_value']))
             report.append(f"Новое значение ресурса {current_res['name']}: {current_res['current_value']}")
 
+            add_resources_to_export_table(time)
+
+
 def change_resources_out(node_resources_out: [NodeRes], env, duration, name):
+    """Изменяет ресурсы на выходе"""
     global report
     yield env.timeout(duration)
     change_resources(node_resources_out, env.now)
@@ -96,15 +113,25 @@ def start(env, events):
             yield env.process(change_resources_out(event.db_resources_out, env, event.duration, event.name))
             report.append(" ")
 
+def set_export_table_headers(sub_area_resources: [Resource]):
+    """Устанавливает заголовки в таблицу для экспорта"""
+    global table_for_export
 
-def get_report(events: [], time_limit: int, sub_area_resources: [Resource]):
-    """Возвращает отчет по симуляции"""
-    global report, current_res_values, simulation_res_table
-    #очищаем предыдущие результаты эксперимента
-    report.clear()
-    simulation_res_table.clear()
-    #формируем словарь текущих значений ресурсов ПО для хранения информации об изменениях на входе/выходе;
-    #ключ - системное имя ресурса
+    #названия ресурсов
+    export_names = [sub_area.name for sub_area in sub_area_resources]
+    export_names.insert(0, 'Время имитации')
+
+    #системные имена ресурсов
+    export_sys_names = [sub_area.sys_name for sub_area in sub_area_resources]
+    export_sys_names.insert(0, 't')
+
+    table_for_export.append(export_names)
+    table_for_export.append(export_sys_names)
+
+def fill_current_res_values_dict(sub_area_resources: [Resource]):
+    """Заполняет словарь текущих значений ресурсов ПО
+    для хранения информации об изменениях на входе/выходе"""
+    global current_res_values
     res_values_list = [{'sys_name': res.sys_name,
                         'id': res.id,
                         'name': res.name,
@@ -112,7 +139,23 @@ def get_report(events: [], time_limit: int, sub_area_resources: [Resource]):
                         'min_value': res.min_value,
                         'max_value': res.max_value}
                        for res in sub_area_resources]
+
+    # формируем словарь, где ключ - системное имя ресурса
     current_res_values = {res['sys_name']: res for res in res_values_list}
+
+def get_report(events: [], time_limit: int, sub_area_resources: [Resource]):
+    """Возвращает отчет по симуляции"""
+    global report, current_res_values, simulation_res_table, table_for_export
+    #очищаем предыдущие результаты эксперимента
+    report.clear()
+    simulation_res_table.clear()
+    table_for_export.clear()
+
+    #заполняем словарь для хранения текущих значений ресурсов во время симуляции
+    fill_current_res_values_dict(sub_area_resources)
+
+    #устанавливаем заголовки в таблицу для дальнейшего экспорта в csv/xlsx
+    set_export_table_headers(sub_area_resources)
 
     env = simpy.Environment()
     #запускаем симуляцию
@@ -121,4 +164,4 @@ def get_report(events: [], time_limit: int, sub_area_resources: [Resource]):
     report.append(f'Конец симуляции')
     report.append(f'Время симуляции - {time_limit}')
     report.append(f'Общие затраты: {cost}')
-    return report, simulation_res_table
+    return report, simulation_res_table, table_for_export

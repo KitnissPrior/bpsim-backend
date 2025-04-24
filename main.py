@@ -373,8 +373,8 @@ async def start_simulation(sub_area_id: int, model_id: int):
 
     sub_area_resources = db.session.query(ModelResource).filter(ModelResource.sub_area_id == sub_area_id).all()
     events = get_events_list(node_data, relations)
-    (report, table) = get_report(events, 500, sub_area_resources)
-    return {"report": report, "table": table}
+    (report, chart_table, export_table) = get_report(events, 500, sub_area_resources)
+    return {"report": report, "chart_table": chart_table, "export_table": export_table}
 
 @app.get("/resources/{sub_area_id}/", tags=["Resources"])
 async def get_resources(sub_area_id: int):
