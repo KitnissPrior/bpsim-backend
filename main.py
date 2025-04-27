@@ -3,7 +3,7 @@ from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.responses import JSONResponse
-from sqlalchemy import and_
+from sqlalchemy import and_, or_
 
 from db.database import engine
 from db.models import User as ModelUser
@@ -272,8 +272,16 @@ async def delete_node(id: int):
     check_existance(db_node, "Узел не найден")
 
     name = db_node.name
+    relation = (db.session.query(ModelRelation)
+                .filter(or_(ModelRelation.target_id == id, ModelRelation.source_id == id))
+                .first())
+
     db.session.delete(db_node)
     db.session.commit()
+
+    if relation:
+        db.session.delete(relation)
+        db.session.commit()
 
     return {"status": "success", "message": f"Узел '{name}' успешно удалён"}
 

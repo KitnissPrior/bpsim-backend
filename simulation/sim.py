@@ -42,6 +42,24 @@ def add_resources_to_export_table(time: float):
 
     table_for_export.append(sim_values_now)
 
+def do_math_operation_on_res(first_value: float, current_value: float, math_operation: str, min_value: float, max_value: float):
+    """Выполняет математическую операцию над ресурсом"""
+    coefficient = float(math_operation[1:])
+
+    if math_operation[0] == "+" or math_operation[0] == "-":
+        current_value = set_resource_value_in_limits(
+            first_value + float(math_operation), min_value,  max_value)
+
+    elif math_operation[0] == "/":
+        current_value = set_resource_value_in_limits(
+            first_value / coefficient, min_value, max_value)
+
+    elif math_operation[0] == "*":
+        current_value = set_resource_value_in_limits(
+            first_value * coefficient,  min_value, max_value)
+
+    return current_value
+
 def change_resources(node_resources: [NodeRes], time: float):
     """Изменяет ресурсы в рамках одного этапа симуляции"""
     global current_res_values, simulation_res_table
@@ -63,27 +81,14 @@ def change_resources(node_resources: [NodeRes], time: float):
             report.append(f"Выполняется операция {math_operation} над ресурсом {sys_name} '{current_res['name']}'...")
 
             report.append(f"Текущее значение ресурса {current_res['name']}: {current_res['current_value']}")
-            coefficient = float(math_operation[1:])
 
-            min_value = current_res['min_value']
-            max_value = current_res['max_value']
-
-            if math_operation[0] == "+" or math_operation[0] == "-":
-                current_res['current_value'] = set_resource_value_in_limits(
-                    current_res_values[other_res_sys_name]['current_value'] + float(math_operation),
-                    min_value,
-                    max_value)
-
-            elif math_operation[0] == "/":
-                current_res['current_value'] = set_resource_value_in_limits(
-                    current_res_values[other_res_sys_name]['current_value'] / coefficient,
-                    min_value,
-                    max_value)
-
-            elif math_operation[0] == "*":
-                current_res['current_value'] = set_resource_value_in_limits(
-                    current_res_values[other_res_sys_name]['current_value'] * coefficient,
-                    min_value, max_value)
+            current_res['current_value'] = do_math_operation_on_res(
+                current_res_values[other_res_sys_name]['current_value'],
+                current_res['current_value'],
+                math_operation,
+                current_res['min_value'],
+                current_res['max_value']
+            )
 
             simulation_res_table.append(SimulationRes(id=current_res['id'], sys_name=sys_name, time=time,
                                                           name=current_res['name'],
@@ -92,12 +97,12 @@ def change_resources(node_resources: [NodeRes], time: float):
 
             add_resources_to_export_table(time)
 
-
 def change_resources_out(node_resources_out: [NodeRes], env, duration, name):
     """Изменяет ресурсы на выходе"""
     global report
     yield env.timeout(duration)
-    change_resources(node_resources_out, env.now)
+    if len(node_resources_out) > 0:
+        change_resources(node_resources_out, env.now)
     report.append(f'{name} - окончание в {env.now}')
 
 def start(env, events):
