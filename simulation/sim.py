@@ -69,12 +69,21 @@ def change_resources(node_resources: [NodeRes], time: float):
         formula = formula_parts[1].translate(str.maketrans({'+': ' ', '-': ' ', '*': ' ', '/': ' '})).split()
         other_res_sys_name = formula[0]
         math_operation = formula_parts[1].removeprefix(other_res_sys_name)
+        last_sys_name = math_operation[1:]
 
-        if (sys_name not in current_res_values) or (other_res_sys_name not in current_res_values):
+        is_last_res_sys_name = last_sys_name[1:4] == "Res"
+
+        if is_last_res_sys_name and last_sys_name in current_res_values:
+            math_operation = math_operation[0] + str(current_res_values[last_sys_name]['current_value'])
+
+
+        if (sys_name not in current_res_values) or (other_res_sys_name not in current_res_values) or (is_last_res_sys_name and last_sys_name not in current_res_values):
             if sys_name not in current_res_values:
                 report.append(f"ОШИБКА! Ресурс '{sys_name}' не опознан в формуле {res.value}")
             if other_res_sys_name not in current_res_values:
                 report.append(f"ОШИБКА! Ресурс '{other_res_sys_name}' не опознан в формуле {res.value}")
+            if last_sys_name not in current_res_values:
+                report.append(f"ОШИБКА! Ресурс '{last_sys_name}' не опознан в формуле {res.value}")
         else:
             current_res = current_res_values[sys_name]
 
