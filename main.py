@@ -395,8 +395,7 @@ async def create_resource(resource: SchemaResource):
     """Создает ресурс"""
     check_resource_name_unique(resource)
 
-    sys_names = db.session.query(ModelResource).filter(and_(ModelResource.sub_area_id==resource.sub_area_id,
-                                                           ModelResource.type_id==resource.type_id)).all()
+    sys_names = db.session.query(ModelResource).filter(ModelResource.sub_area_id==resource.sub_area_id).all()
     prefix = db.session.query(ModelResourceType).get(resource.type_id).prefix
     sys_name = f"{prefix}Res{len(sys_names)+1}"
     new_resource = ModelResource(sub_area_id=resource.sub_area_id, name=resource.name,
