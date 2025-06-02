@@ -36,7 +36,6 @@ from fastapi_sqlalchemy import DBSessionMiddleware, db
 from shared.enums.control_types import ControlType
 from shared.validation import (check_existance, check_sub_area_name_unique, check_model_name_unique,
                                check_resource_name_unique, check_node_name_unique)
-from shared.Model.deletion import delete_model_control_by_id
 
 from simulation.sim import get_events_list, get_report
 from simulation.types import SimulationNodedata
@@ -116,6 +115,13 @@ app.add_middleware(DBSessionMiddleware, db_url=os.environ['DATABASE_URL'])
 
 # Создание таблиц в базе данных
 Base.metadata.create_all(bind=engine)
+
+def delete_model_control_by_id(control_id: int):
+    """Удаляет компоненты модели по id"""
+    control = db.session.query(ModelBpsimModelControl).get(control_id)
+    if control:
+        db.session.delete(control)
+        db.session.commit()
 
 @app.get("/users/", tags=["Users"])
 async def get_users():
